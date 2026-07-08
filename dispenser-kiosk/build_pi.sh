@@ -21,9 +21,10 @@ sudo apt-get install -y python3-tk python3-pip python3-pil python3-pil.imagetk R
 
 # 2. Install Python dependencies
 echo "[2/4] Installing Python requirements..."
-pip3 install --upgrade pip
-pip3 install -r requirements.txt
-pip3 install pyinstaller
+# Use --break-system-packages to allow global installs on modern Raspberry Pi OS (Debian Bookworm)
+pip3 install --break-system-packages --upgrade pip || true
+pip3 install --break-system-packages -r requirements.txt
+pip3 install --break-system-packages pyinstaller
 
 # 3. Compile the application
 echo "[3/4] Compiling main.py to standalone executable..."
