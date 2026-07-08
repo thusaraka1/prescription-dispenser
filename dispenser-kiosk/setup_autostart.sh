@@ -24,10 +24,25 @@ fi
 # Make sure the executable has correct permissions
 chmod +x "$EXEC_PATH"
 
-# Create autostart directory
-mkdir -p ~/.config/autostart
+echo "Setting up autostart using multiple methods for compatibility..."
 
-# Write the desktop entry file
+# ---- Method 1: LXDE Autostart (Most reliable on Raspberry Pi OS) ----
+LXDE_AUTOSTART="$HOME/.config/lxsession/LXDE-pi/autostart"
+mkdir -p "$(dirname "$LXDE_AUTOSTART")"
+
+# Check if it already exists in the file, if not add it
+if [ -f "$LXDE_AUTOSTART" ]; then
+    # Remove old entry if present
+    grep -v "smd_kiosk" "$LXDE_AUTOSTART" > /tmp/lxde_autostart_tmp || true
+    cp /tmp/lxde_autostart_tmp "$LXDE_AUTOSTART"
+fi
+
+# Append the kiosk launch command
+echo "@$EXEC_PATH" >> "$LXDE_AUTOSTART"
+echo "[OK] LXDE autostart configured: $LXDE_AUTOSTART"
+
+# ---- Method 2: XDG Desktop Autostart (Backup) ----
+mkdir -p ~/.config/autostart
 cat > ~/.config/autostart/smd-kiosk.desktop << EOF
 [Desktop Entry]
 Type=Application
@@ -37,12 +52,21 @@ Exec=$EXEC_PATH
 Terminal=false
 X-GNOME-Autostart-enabled=true
 EOF
+echo "[OK] XDG desktop autostart configured: ~/.config/autostart/smd-kiosk.desktop"
 
-echo "=================================================="
-echo "SUCCESS: Autostart configured!"
-echo "Executable: $EXEC_PATH"
-echo "Autostart file: ~/.config/autostart/smd-kiosk.desktop"
+# ---- Method 3: Cron @reboot (Fallback for headless setups) ----
+# Remove old cron entry if present, then add new one
+(crontab -l 2>/dev/null | grep -v "smd_kiosk" ; echo "@reboot sleep 10 && DISPLAY=:0 $EXEC_PATH &") | crontab -
+echo "[OK] Cron @reboot configured as fallback"
+
 echo ""
-echo "The kiosk will launch automatically on next reboot."
-echo "To test now, reboot with:  sudo reboot"
+echo "=================================================="
+echo "SUCCESS: Autostart configured (3 methods)!"
+echo ""
+echo "  Executable : $EXEC_PATH"
+echo "  LXDE       : $LXDE_AUTOSTART"
+echo "  XDG Desktop: ~/.config/autostart/smd-kiosk.desktop"
+echo "  Cron       : @reboot (with 10s delay)"
+echo ""
+echo "Reboot now to test:  sudo reboot"
 echo "=================================================="
