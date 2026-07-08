@@ -29,7 +29,8 @@ pip3 install --break-system-packages pyinstaller
 # 3. Compile the application
 echo "[3/4] Compiling main.py to standalone executable..."
 # We use --collect-all customtkinter to ensure its assets, themes, and json configs are bundled.
-pyinstaller --onefile --noconsole --name "smd_kiosk" --collect-all customtkinter main.py
+# We run via 'python3 -m PyInstaller' to avoid PATH command-not-found issues.
+python3 -m PyInstaller --onefile --noconsole --name "smd_kiosk" --collect-all customtkinter main.py
 
 # 4. Verify output
 echo "[4/4] Verifying build output..."
