@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Smart Medicine Dispenser</title>
+    <meta name="description" content="Smart Medicine Dispenser Kiosk — Scan barcode or manually select medicines for automated dispensing.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/static/css/kiosk.css">
+</head>
+<body>
+    <div id="kiosk-app">
+
+        <!-- ======================================== -->
+        <!-- SCREEN 1: Welcome / Home                 -->
+        <!-- ======================================== -->
+        <section id="screen-welcome" class="screen active">
+            <div class="screen-content welcome-screen">
+                <div class="welcome-header">
+                    <div class="logo-pulse">
+                        <i class='bx bx-plus-medical'></i>
+                    </div>
+                    <h1>Welcome to <span class="brand-accent">SMD</span></h1>
+                    <p class="subtitle">Smart Medicine Dispenser</p>
+                </div>
+
+                <div class="welcome-actions">
+                    <button id="btn-scan-barcode" class="kiosk-btn primary-action" onclick="navigateTo('scan')">
+                        <div class="btn-icon-wrap">
+                            <i class='bx bx-barcode-reader'></i>
+                        </div>
+                        <div class="btn-text">
+                            <span class="btn-label">Scan Bar Code</span>
+                            <span class="btn-hint">Use your prescription barcode</span>
+                        </div>
+                    </button>
+
+                    <button id="btn-select-medicine" class="kiosk-btn secondary-action" onclick="navigateTo('medicine-list')">
+                        <div class="btn-icon-wrap">
+                            <i class='bx bx-capsule'></i>
+                        </div>
+                        <div class="btn-text">
+                            <span class="btn-label">Select Medicine</span>
+                            <span class="btn-hint">Manually choose medication</span>
+                        </div>
+                    </button>
+                </div>
+
+                <div class="welcome-footer">
+                    <div class="footer-dot"></div>
+                    <span>Touch to begin</span>
+                    <div class="footer-dot"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- SCREEN 2a: Ready to Scan (Barcode Flow)  -->
+        <!-- ======================================== -->
+        <section id="screen-scan" class="screen">
+            <div class="screen-content scan-screen">
+                <button class="back-btn" onclick="navigateTo('welcome')">
+                    <i class='bx bx-arrow-back'></i>
+                </button>
+
+                <div class="scan-visual">
+                    <div class="scanner-frame">
+                        <div class="scanner-line"></div>
+                        <i class='bx bx-barcode'></i>
+                    </div>
+                </div>
+
+                <h2 class="screen-title">Ready to Scan</h2>
+                <p class="screen-subtitle" id="scan-status-text">Please scan your prescription barcode</p>
+
+                <!-- Hidden input captures USB barcode scanner data -->
+                <input type="text" id="barcode-input" class="barcode-hidden-input" 
+                       autofocus autocomplete="off" placeholder="">
+
+                <!-- Manual barcode entry for testing -->
+                <div class="manual-entry">
+                    <div class="manual-input-group">
+                        <input type="text" id="manual-barcode-input" 
+                               placeholder="Or type barcode ID (e.g. RX-123456)" 
+                               autocomplete="off">
+                        <button class="manual-submit-btn" onclick="submitManualBarcode()">
+                            <i class='bx bx-search'></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="scan-hint">
+                    <i class='bx bx-info-circle'></i>
+                    <span>Hold your barcode under the scanner</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- SCREEN 3a: Patient Verified (Barcode)    -->
+        <!-- ======================================== -->
+        <section id="screen-verified" class="screen">
+            <div class="screen-content verified-screen">
+                <div class="verified-badge">
+                    <div class="check-circle">
+                        <i class='bx bx-check'></i>
+                    </div>
+                    <h2>Patient Verified</h2>
+                </div>
+
+                <div class="info-card patient-card">
+                    <div class="info-card-header">
+                        <i class='bx bx-user'></i>
+                        <h3>Patient Details</h3>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Name</span>
+                            <span class="info-value" id="v-patient-name">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Phone</span>
+                            <span class="info-value" id="v-patient-phone">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Date Issued</span>
+                            <span class="info-value" id="v-patient-date">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Prescription ID</span>
+                            <span class="info-value" id="v-prescription-id">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card meds-card">
+                    <div class="info-card-header">
+                        <i class='bx bx-capsule'></i>
+                        <h3>Medication Details</h3>
+                    </div>
+                    <ul id="v-medicines-list" class="med-list">
+                        <!-- Populated dynamically -->
+                    </ul>
+                </div>
+
+                <button id="btn-start-dispense" class="kiosk-btn dispense-btn" onclick="startDispensing()">
+                    <i class='bx bx-right-arrow-alt'></i>
+                    <span>Dispense Medications</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- SCREEN 2b: Select Medicine (Manual Flow) -->
+        <!-- ======================================== -->
+        <section id="screen-medicine-list" class="screen">
+            <div class="screen-content medicine-list-screen">
+                <button class="back-btn" onclick="navigateTo('welcome')">
+                    <i class='bx bx-arrow-back'></i>
+                </button>
+
+                <h2 class="screen-title">Select Medicine</h2>
+                <p class="screen-subtitle">Choose from available medications</p>
+
+                <div class="medicine-search-bar">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="med-filter-input" 
+                           placeholder="Search medicines..." 
+                           oninput="filterMedicines(this.value)">
+                </div>
+
+                <div id="medicine-varieties-list" class="medicine-varieties">
+                    <!-- Populated dynamically -->
+                    <div class="loading-state">
+                        <i class='bx bx-loader-alt bx-spin'></i>
+                        <p>Loading medicines...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- SCREEN 3b: Select Quantity (Manual Flow) -->
+        <!-- ======================================== -->
+        <section id="screen-quantity" class="screen">
+            <div class="screen-content quantity-screen">
+                <button class="back-btn" onclick="navigateTo('medicine-list')">
+                    <i class='bx bx-arrow-back'></i>
+                </button>
+
+                <h2 class="screen-title">Select Quantity</h2>
+                <p class="screen-subtitle" id="selected-med-name">—</p>
+
+                <div class="quantity-selector">
+                    <button class="qty-btn minus" id="qty-minus" onclick="adjustQuantity(-1)">
+                        <i class='bx bx-minus'></i>
+                    </button>
+
+                    <div class="qty-display">
+                        <input type="number" id="qty-value" value="2" min="2" max="18" 
+                               onchange="clampQuantity()">
+                    </div>
+
+                    <button class="qty-btn plus" id="qty-plus" onclick="adjustQuantity(1)">
+                        <i class='bx bx-plus'></i>
+                    </button>
+                </div>
+
+                <div class="qty-limits">
+                    <span class="limit-label">Min: <strong id="qty-min-val">2</strong></span>
+                    <span class="limit-label">Max: <strong id="qty-max-val">18</strong></span>
+                </div>
+
+                <button class="kiosk-btn dispense-btn" onclick="startManualDispense()">
+                    <i class='bx bx-right-arrow-alt'></i>
+                    <span>Dispense</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- SCREEN 4: Dispensing in Progress         -->
+        <!-- ======================================== -->
+        <section id="screen-dispensing" class="screen">
+            <div class="screen-content dispensing-screen">
+                <div class="dispensing-visual">
+                    <div class="pill-animation">
+                        <div class="pill pill-1"></div>
+                        <div class="pill pill-2"></div>
+                        <div class="pill pill-3"></div>
+                    </div>
+                </div>
+
+                <h2 class="screen-title">Medications are<br><span class="highlight">Dispensing</span></h2>
+
+                <div class="dispense-progress">
+                    <div class="progress-info">
+                        <span id="dispense-current-med">Preparing...</span>
+                        <span id="dispense-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill" id="dispense-progress-bar"></div>
+                    </div>
+                    <p class="progress-detail" id="dispense-detail">Starting dispensing process...</p>
+                </div>
+
+                <p class="dispensing-warning">
+                    <i class='bx bx-error-circle'></i>
+                    Please do not leave. Medications are being prepared.
+                </p>
+            </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- SCREEN 5: Complete / Thank You           -->
+        <!-- ======================================== -->
+        <section id="screen-complete" class="screen">
+            <div class="screen-content complete-screen">
+                <div class="complete-visual">
+                    <div class="success-burst">
+                        <div class="burst-ring"></div>
+                        <div class="burst-check">
+                            <i class='bx bx-check'></i>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="screen-title">Collect Your<br><span class="highlight">Medications</span></h2>
+                <p class="thank-you-text">Thank You!</p>
+
+                <div class="auto-return">
+                    <div class="countdown-ring">
+                        <svg viewBox="0 0 40 40">
+                            <circle cx="20" cy="20" r="18" class="countdown-bg"/>
+                            <circle cx="20" cy="20" r="18" class="countdown-fill" id="countdown-circle"/>
+                        </svg>
+                        <span id="countdown-number">10</span>
+                    </div>
+                    <p>Returning to home in <span id="countdown-text">10</span>s</p>
+                </div>
+
+                <button class="kiosk-btn done-btn" onclick="returnHome()">
+                    <i class='bx bx-home'></i>
+                    <span>Done</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ======================================== -->
+        <!-- ERROR OVERLAY                            -->
+        <!-- ======================================== -->
+        <div id="error-overlay" class="error-overlay hidden">
+            <div class="error-card">
+                <div class="error-icon">
+                    <i class='bx bx-error-circle'></i>
+                </div>
+                <h3 id="error-title">Error</h3>
+                <p id="error-message">Something went wrong.</p>
+                <button class="kiosk-btn" onclick="dismissError()">
+                    <i class='bx bx-refresh'></i>
+                    <span>Try Again</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- App Logic -->
+    <script src="/static/js/kiosk.js"></script>
+</body>
+</html>

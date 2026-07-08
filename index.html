@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor's Dashboard - Prescriptions</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    
+    <!-- JsBarcode for generating barcodes -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon"><i class='bx bx-plus-medical'></i></div>
+                <h2>DocCare</h2>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-tab="new-prescription">
+                    <a href="#">
+                        <i class='bx bx-file-blank'></i>
+                        <span class="link-name">New Prescription</span>
+                    </a>
+                </li>
+                <li data-tab="medicine-db">
+                    <a href="#">
+                        <i class='bx bx-capsule'></i>
+                        <span class="link-name">Medicine DB</span>
+                    </a>
+                </li>
+                <li data-tab="dispense-prescription">
+                    <a href="#">
+                        <i class='bx bx-receipt'></i>
+                        <span class="link-name">Issued Prescriptions</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h2 id="current-page-title">New Prescription</h2>
+                </div>
+                <div class="user-wrapper">
+                    <div class="user-info">
+                        <h4>Dr. Smith</h4>
+                        <small>Cardiologist</small>
+                    </div>
+                    <img src="https://ui-avatars.com/api/?name=Dr+Smith&background=1e293b&color=38bdf8" alt="Profile">
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- New Prescription Section -->
+                <section id="new-prescription" class="content-section active">
+                    <div class="dashboard-grid">
+                        <!-- Patient Details Form -->
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <i class='bx bx-user'></i>
+                                <h3>Patient Information</h3>
+                            </div>
+                            <form id="patient-form">
+                                <div class="input-group">
+                                    <label for="patient-name">Patient Name <span class="required">*</span></label>
+                                    <input type="text" id="patient-name" required placeholder="e.g. John Doe">
+                                </div>
+                                <div class="input-group">
+                                    <label for="patient-phone">Telephone No <span class="required">*</span></label>
+                                    <input type="tel" id="patient-phone" required placeholder="e.g. +1 234 567 890">
+                                </div>
+                                <div class="input-group">
+                                    <label for="patient-hometown">Hometown <span class="optional">(Optional)</span></label>
+                                    <input type="text" id="patient-hometown" placeholder="e.g. New York">
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Medicine Selection -->
+                        <div class="glass-card medicine-selection-card">
+                            <div class="card-header">
+                                <i class='bx bx-list-plus'></i>
+                                <h3>Prescribe Medicines</h3>
+                            </div>
+                            
+                            <div class="search-container">
+                                <div class="search-box">
+                                    <i class='bx bx-search'></i>
+                                    <input type="text" id="medicine-search" placeholder="Search and add medicines..." autocomplete="off">
+                                </div>
+                                <div id="search-results" class="dropdown-content hidden">
+                                    <!-- Search results will appear here -->
+                                </div>
+                            </div>
+
+                            <div class="selected-medicines-container">
+                                <h4><i class='bx bx-check-shield'></i> Selected Medicines</h4>
+                                <ul id="selected-medicines-list" class="medicines-list">
+                                    <li class="empty-state">
+                                        <i class='bx bx-basket'></i>
+                                        <p>No medicines selected yet. Search above to add.</p>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-bar">
+                        <button id="issue-prescription-btn" class="primary-btn pulse-anim">
+                            <i class='bx bx-check-circle'></i> Issue Prescription
+                        </button>
+                    </div>
+
+                    <!-- Prescription Result Modal / Overlay -->
+                    <div id="prescription-modal" class="modal-overlay hidden">
+                        <div class="glass-card result-card modal-content">
+                            <div class="result-header">
+                                <div class="success-icon"><i class='bx bx-check'></i></div>
+                                <h3>Prescription Issued</h3>
+                                <button id="close-modal" class="icon-btn"><i class='bx bx-x'></i></button>
+                            </div>
+                            <div class="prescription-details">
+                                <div class="patient-summary">
+                                    <p><strong>Patient:</strong> <span id="res-patient-name"></span></p>
+                                    <p><strong>Phone:</strong> <span id="res-patient-phone"></span></p>
+                                    <p><strong>Hometown:</strong> <span id="res-patient-hometown">-</span></p>
+                                    <p><strong>Date:</strong> <span id="res-date"></span></p>
+                                </div>
+                                <div class="barcode-container">
+                                    <svg id="barcode"></svg>
+                                    <p class="barcode-hint">Session ID Barcode</p>
+                                </div>
+                            </div>
+                            <div class="prescribed-list-summary">
+                                <h4>Rx</h4>
+                                <ul id="res-medicines-list" class="print-list"></ul>
+                            </div>
+                            <div class="modal-actions">
+                                <button id="print-btn" class="secondary-btn"><i class='bx bx-printer'></i> Print</button>
+                                <button id="new-presc-btn" class="primary-btn">Start New</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Medicine Database Section -->
+                <section id="medicine-db" class="content-section">
+                    <div class="dashboard-grid">
+                        <!-- Add Medicine Form -->
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <i class='bx bx-message-square-add'></i>
+                                <h3>Add New Medicine</h3>
+                            </div>
+                            <form id="add-medicine-form">
+                                <div class="input-group">
+                                    <label for="med-name">Medicine Name <span class="required">*</span></label>
+                                    <input type="text" id="med-name" required placeholder="e.g. Amoxicillin">
+                                </div>
+                                <div class="input-group">
+                                    <label for="med-dosage">Dosage/Strength</label>
+                                    <input type="text" id="med-dosage" placeholder="e.g. 500mg">
+                                </div>
+                                <div class="input-group">
+                                    <label for="med-type">Type</label>
+                                    <select id="med-type">
+                                        <option value="Tablet">Tablet</option>
+                                        <option value="Capsule">Capsule</option>
+                                        <option value="Syrup">Syrup</option>
+                                        <option value="Injection">Injection</option>
+                                        <option value="Ointment">Ointment</option>
+                                        <option value="Drops">Drops</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="primary-btn mt-4 full-width">
+                                    <i class='bx bx-plus'></i> Add to Database
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Medicine List -->
+                        <div class="glass-card list-card span-2">
+                            <div class="card-header flex-between">
+                                <div class="header-left">
+                                    <i class='bx bx-data'></i>
+                                    <h3>Medicine Inventory</h3>
+                                </div>
+                                <span class="badge" id="total-meds">0 Items</span>
+                            </div>
+                            <div class="table-container">
+                                <table class="modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Dosage</th>
+                                            <th>Type</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="medicine-table-body">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Issued Prescriptions Section -->
+                <section id="dispense-prescription" class="content-section">
+                    <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+                        <div class="glass-card list-card">
+                            <div class="card-header flex-between" style="flex-wrap: wrap; gap: 16px;">
+                                <div class="header-left">
+                                    <i class='bx bx-history'></i>
+                                    <h3>Prescription History</h3>
+                                </div>
+                                <div class="search-box" style="width: 100%; max-width: 400px;">
+                                    <i class='bx bx-search'></i>
+                                    <input type="text" id="history-search-input" placeholder="Search by Barcode, Name or Phone..." autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table class="modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Barcode ID</th>
+                                            <th>Patient Name</th>
+                                            <th>Telephone</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="history-table-body">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- View Prescription Modal -->
+                    <div id="view-prescription-modal" class="modal-overlay hidden">
+                        <div class="glass-card result-card modal-content" style="max-width: 600px;">
+                            <div class="result-header">
+                                <div class="header-left" style="display:flex; align-items:center; gap:12px;">
+                                    <i class='bx bx-receipt' style="font-size: 24px; color: var(--primary-color);"></i>
+                                    <h3>Prescription Details</h3>
+                                </div>
+                                <span id="view-status-badge" class="badge">Pending</span>
+                            </div>
+                            
+                            <div class="prescription-details" style="margin-bottom: 24px;">
+                                <div class="patient-summary">
+                                    <p><strong>Patient:</strong> <span id="view-patient-name"></span></p>
+                                    <p><strong>Phone:</strong> <span id="view-patient-phone"></span></p>
+                                    <p><strong>Date Issued:</strong> <span id="view-date"></span></p>
+                                    <p><strong>Barcode ID:</strong> <span id="view-session-id"></span></p>
+                                </div>
+                            </div>
+                            
+                            <div class="prescribed-list-summary">
+                                <h4>Medicines to Disperse</h4>
+                                <ul id="view-medicines-list" class="print-list" style="margin-top: 12px; margin-bottom: 24px; list-style: none; padding: 0;"></ul>
+                            </div>
+                            
+                            <div class="modal-actions" style="justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                                <button id="view-mark-dispersed-btn" class="primary-btn pulse-anim">
+                                    <i class='bx bx-check-circle'></i> Mark as Dispersed
+                                </button>
+                                <button id="close-view-modal" class="secondary-btn">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
