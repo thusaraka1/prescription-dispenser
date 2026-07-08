@@ -71,7 +71,7 @@ class SMDKiosk(ctk.CTk):
         # Fullscreen on Raspberry Pi (Linux)
         if sys.platform.startswith('linux'):
             self.attributes('-fullscreen', True)
-            self.config(cursor='none')  # Hide cursor for touch kiosk
+            # self.config(cursor='none')  # Commented out to keep the mouse cursor/arrow visible
         else:
             # Dev mode on Windows
             self.state('zoomed')
