@@ -20,13 +20,14 @@ module.exports = (req, res) => {
 
     console.log('📱 SMS Proxy Request:', payload);
 
+    const apiToken = process.env.TEXTLK_API_TOKEN || '1997|0cqO0COunscpPJBOiHHjJtpi5mODfElhyvIkOEcf5803240e';
     const options = {
         hostname: 'app.text.lk',
         port: 443,
         path: '/api/v3/sms/send',
         method: 'POST',
         headers: {
-            'Authorization': 'Bearer 1997|0cqO0COunscpPJBOiHHjJtpi5mODfElhyvIkOEcf5803240e',
+            'Authorization': `Bearer ${apiToken}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Content-Length': Buffer.byteLength(payload),

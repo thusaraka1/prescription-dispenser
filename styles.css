@@ -705,10 +705,13 @@ select option {
 
 .modal-content {
     width: 100%;
-    max-width: 500px;
+    max-width: 540px;
+    max-height: 92vh;
+    overflow-y: auto;
     transform: translateY(20px);
     transition: transform var(--transition-smooth);
     background: #0f172a; /* Solid background for modal */
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .modal-overlay:not(.hidden) .modal-content {
@@ -797,6 +800,182 @@ select option {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+}
+
+/* =========================================
+   Barcode Link & Sharing Components
+   ========================================= */
+.barcode-link-section {
+    background: rgba(14, 165, 233, 0.05);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.link-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.link-section-header label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0;
+}
+
+.live-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success-color);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.link-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.link-input-group input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    padding: 6px 8px;
+    outline: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.link-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    border: none;
+}
+
+.link-action-btn.secondary-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.link-action-btn.secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.link-action-btn.btn-copied {
+    background: rgba(16, 185, 129, 0.25) !important;
+    border-color: var(--success-color) !important;
+    color: var(--success-color) !important;
+}
+
+.whatsapp-btn {
+    background: #25D366;
+    color: #ffffff !important;
+    border: none;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+}
+
+.whatsapp-btn:hover {
+    background: #20bd5a;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.45);
+    transform: translateY(-1px);
+}
+
+.sms-notice-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.45;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #fef3c7;
+}
+
+.sms-notice-card i {
+    font-size: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    color: #f59e0b;
+}
+
+.sms-notice-card.success {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #ecfdf5;
+}
+
+.sms-notice-card.success i {
+    color: #10b981;
+}
+
+.sms-notice-card.neutral {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+}
+
+.sms-notice-card.neutral i {
+    color: #94a3b8;
+}
+
+.sms-notice-card.warning {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #fecaca;
+}
+
+.sms-notice-card.warning i {
+    color: #ef4444;
+}
+
+.sms-notice-card .notice-text {
+    flex: 1;
+}
+
+.sms-notice-card small {
+    display: block;
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 11px;
 }
 
 /* =========================================

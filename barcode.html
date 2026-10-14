@@ -486,28 +486,38 @@
         const barcodeState = document.getElementById('barcode-state');
 
         async function init() {
-            // 1. Get token from URL
+            // 1. Get token or id from URL
             const params = new URLSearchParams(window.location.search);
             const token = params.get('token');
+            const rxId = params.get('id');
 
-            if (!token) {
-                showError('Invalid Link', 'No prescription token found in this link. Please use the link sent to your phone via SMS.');
+            if (!token && !rxId) {
+                showError('Invalid Link', 'No prescription reference found in this link. Please use the link provided by your doctor or clinic.');
                 return;
             }
 
             try {
-                // 2. Look up the token in Firebase
-                const tokenRes = await fetch(`${FIREBASE_URL}/barcode-tokens/${token}.json`);
-                const tokenData = await tokenRes.json();
+                let prescriptionId = rxId;
 
-                if (!tokenData || !tokenData.prescriptionId) {
-                    showError('Link Not Found', 'This prescription link is invalid or has been removed. Please contact your doctor.');
+                // If token is provided, look up the token in Firebase
+                if (token) {
+                    const tokenRes = await fetch(`${FIREBASE_URL}/barcode-tokens/${token}.json`);
+                    const tokenData = await tokenRes.json();
+
+                    if (tokenData && tokenData.prescriptionId) {
+                        prescriptionId = tokenData.prescriptionId;
+                    } else if (token.startsWith('RX-')) {
+                        // In case someone passed the prescription ID directly in the token query param
+                        prescriptionId = token;
+                    }
+                }
+
+                if (!prescriptionId) {
+                    showError('Link Not Found', 'This prescription link is invalid or has expired. Please contact your doctor.');
                     return;
                 }
 
-                const prescriptionId = tokenData.prescriptionId;
-
-                // 3. Fetch the prescription data
+                // Fetch the prescription data
                 const rxRes = await fetch(`${FIREBASE_URL}/prescriptions/${prescriptionId}.json`);
                 const rxData = await rxRes.json();
 
@@ -516,7 +526,7 @@
                     return;
                 }
 
-                // 4. Render everything
+                // Render everything
                 renderBarcodePage(prescriptionId, rxData);
 
             } catch (err) {

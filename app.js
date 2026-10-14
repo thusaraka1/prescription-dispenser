@@ -52,6 +52,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewMedicinesList = document.getElementById('view-medicines-list');
     const viewMarkDispersedBtn = document.getElementById('view-mark-dispersed-btn');
 
+    // Barcode Link & Sharing Elements (Result Modal)
+    const resBarcodeLinkInput = document.getElementById('res-barcode-link');
+    const copyBarcodeLinkBtn = document.getElementById('copy-barcode-link-btn');
+    const openBarcodeLinkBtn = document.getElementById('open-barcode-link-btn');
+    const whatsappShareBtn = document.getElementById('whatsapp-share-btn');
+    const smsNoticeBanner = document.getElementById('sms-notice-banner');
+    const smsStatusText = document.getElementById('sms-status-text');
+    const smsSubText = document.getElementById('sms-sub-text');
+
+    // Barcode Link Elements (View History Modal)
+    const viewBarcodeLinkInput = document.getElementById('view-barcode-link');
+    const copyViewBarcodeLinkBtn = document.getElementById('copy-view-barcode-link-btn');
+    const openViewBarcodeLinkBtn = document.getElementById('open-view-barcode-link-btn');
+    const whatsappViewShareBtn = document.getElementById('whatsapp-view-share-btn');
+
+    // Settings Modal Elements
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeSettingsModalBtn = document.getElementById('close-settings-modal');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
+    const settingSenderIdInput = document.getElementById('setting-sender-id');
+    const currentSenderIdLabel = document.getElementById('current-sender-id-label');
+
     // ==========================================
     // Initialization
     // ==========================================
@@ -349,8 +373,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const sessionId = 'RX-' + Math.floor(100000 + Math.random() * 900000);
         const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+        // Generate unique token & link for the patient's barcode page
+        const barcodeToken = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+            .map(b => b.toString(16).padStart(2, '0')).join('');
+        const barcodeLink = `${window.location.origin}/barcode.html?token=${barcodeToken}`;
+        console.log('🔗 [Barcode Link] Generated:', barcodeLink);
+
         const newPrescription = {
             id: sessionId,
+            barcodeToken: barcodeToken,
+            barcodeLink: barcodeLink,
             patientName: nameInput.value,
             phone: phoneInput.value,
             hometown: hometownInput.value || '-',
@@ -360,76 +392,104 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // Save to Firebase using PUT to use the sessionId as the exact key in the DB
-            await fetch(`${FIREBASE_URL}/prescriptions/${sessionId}.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newPrescription)
-            });
-
-            // Generate a unique token for the barcode link
-            const barcodeToken = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-                .map(b => b.toString(16).padStart(2, '0')).join('');
-
-            // Save the token to Firebase
-            await fetch(`${FIREBASE_URL}/barcode-tokens/${barcodeToken}.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prescriptionId: sessionId,
-                    createdAt: new Date().toISOString()
+            // Save prescription and token in parallel to Firebase
+            await Promise.all([
+                fetch(`${FIREBASE_URL}/prescriptions/${sessionId}.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newPrescription)
+                }),
+                fetch(`${FIREBASE_URL}/barcode-tokens/${barcodeToken}.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prescriptionId: sessionId,
+                        createdAt: new Date().toISOString()
+                    })
                 })
-            });
+            ]);
 
-            // Build the barcode link
-            const barcodeLink = `${window.location.origin}/barcode.html?token=${barcodeToken}`;
-            console.log('🔗 [Barcode Link] Generated:', barcodeLink);
+            // Populate Link in Result Modal
+            if (resBarcodeLinkInput) resBarcodeLinkInput.value = barcodeLink;
+            if (openBarcodeLinkBtn) openBarcodeLinkBtn.href = barcodeLink;
 
-            // Send SMS via local proxy (to bypass CORS)
+            // Format phone number
+            let formattedPhone = '';
             if (phoneInput.value) {
-                console.log('📱 [SMS] Step 1: Phone number detected:', phoneInput.value);
+                formattedPhone = phoneInput.value.replace(/[^0-9]/g, '');
+                if (formattedPhone.startsWith('0')) {
+                    formattedPhone = '94' + formattedPhone.substring(1);
+                }
+            }
+
+            // Setup 1-click WhatsApp share button
+            if (whatsappShareBtn) {
+                const waMessage = encodeURIComponent(`Hi ${nameInput.value}, your prescription (${sessionId}) is ready. Open your barcode link here: ${barcodeLink}`);
+                whatsappShareBtn.href = formattedPhone ? `https://wa.me/${formattedPhone}?text=${waMessage}` : `https://wa.me/?text=${waMessage}`;
+            }
+
+            // Active Sender ID (from Settings or default TextLKDemo)
+            const activeSenderId = localStorage.getItem('doccare_sender_id') || 'TextLKDemo';
+
+            // Send SMS via proxy if phone provided
+            if (formattedPhone) {
+                console.log('📱 [SMS] Step 1: Phone number detected:', formattedPhone);
+                if (smsNoticeBanner) {
+                    smsNoticeBanner.className = 'sms-notice-card neutral';
+                    smsStatusText.textContent = `Dispatching SMS to +${formattedPhone} via Text.lk...`;
+                    smsSubText.textContent = 'Contacting SMS gateway...';
+                }
+
                 try {
-                    // Format phone number to Sri Lankan international format
-                    let formattedPhone = phoneInput.value.replace(/[^0-9]/g, '');
-                    if (formattedPhone.startsWith('0')) {
-                        formattedPhone = '94' + formattedPhone.substring(1);
-                    }
-                    console.log('📱 [SMS] Step 2: Formatted phone:', formattedPhone);
-
-                    // Build SMS message with barcode link
                     const smsMessage = `Hi ${nameInput.value}, your prescription (${sessionId}) is ready. Open this link to get your barcode: ${barcodeLink}`;
-                    console.log('📱 [SMS] Step 3: Message built:', smsMessage);
-
                     const smsPayload = {
                         recipient: formattedPhone,
-                        sender_id: "TextLKDemo",
+                        sender_id: activeSenderId,
                         type: "plain",
                         message: smsMessage
                     };
-                    console.log('📱 [SMS] Step 4: Sending payload to /api/send-sms proxy...', smsPayload);
-                    
+                    console.log('📱 [SMS] Sending payload to proxy:', smsPayload);
+
                     const smsRes = await fetch('/api/send-sms', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(smsPayload)
                     });
 
-                    console.log('📱 [SMS] Step 5: Got response, status code:', smsRes.status);
                     const smsData = await smsRes.json();
-                    console.log('📱 [SMS] Step 6: Response body:', JSON.stringify(smsData, null, 2));
+                    console.log('📱 [SMS] Response:', smsData);
 
                     if (smsData.status === 'success') {
-                        console.log('📱 [SMS] ✅ SMS SENT SUCCESSFULLY!');
+                        if (smsNoticeBanner) {
+                            smsNoticeBanner.className = 'sms-notice-card success';
+                            smsStatusText.textContent = `SMS dispatched to +${formattedPhone} via Text.lk!`;
+                            if (activeSenderId === 'TextLKDemo') {
+                                smsSubText.innerHTML = `<strong>Note:</strong> Since <code>TextLKDemo</code> is a test Sender ID, Sri Lankan telcos replace SMS bodies containing links to prevent spam. You can directly copy or share this link via WhatsApp above! To send links directly inside SMS, register a verified Sender ID in Settings.`;
+                            } else {
+                                smsSubText.textContent = `Sent using verified Sender ID "${activeSenderId}".`;
+                            }
+                        }
                     } else {
-                        console.error('📱 [SMS] ❌ API Error:', smsData);
-                        alert('SMS Error: ' + (smsData.message || JSON.stringify(smsData)));
+                        if (smsNoticeBanner) {
+                            smsNoticeBanner.className = 'sms-notice-card warning';
+                            smsStatusText.textContent = `SMS Gateway Notice: ${smsData.message || 'Check gateway balance'}`;
+                            smsSubText.textContent = 'You can still copy or share the barcode link directly using the buttons above.';
+                        }
                     }
                 } catch (smsError) {
-                    console.error('📱 [SMS] ❌ FETCH FAILED:', smsError.name, smsError.message);
-                    alert('SMS could not be sent. Make sure you are running the app via: node server.js → http://localhost:3000');
+                    console.error('📱 [SMS] Fetch error:', smsError);
+                    if (smsNoticeBanner) {
+                        smsNoticeBanner.className = 'sms-notice-card warning';
+                        smsStatusText.textContent = 'Could not dispatch SMS (network or proxy issue).';
+                        smsSubText.textContent = 'Please copy the barcode link or share via WhatsApp using the buttons above.';
+                    }
                 }
             } else {
-                console.log('📱 [SMS] Skipped — no phone number entered.');
+                if (smsNoticeBanner) {
+                    smsNoticeBanner.className = 'sms-notice-card neutral';
+                    smsStatusText.textContent = 'No phone number provided (SMS skipped).';
+                    smsSubText.textContent = 'Share the generated barcode link directly with the patient using the buttons above.';
+                }
             }
 
             // Populate Modal
@@ -591,6 +651,17 @@ document.addEventListener('DOMContentLoaded', () => {
         viewStatusBadge.className = 'badge ' + status.toLowerCase();
         viewStatusBadge.textContent = status;
 
+        // Populate Barcode Link in View Modal
+        const rxLink = found.barcodeLink || `${window.location.origin}/barcode.html?id=${found.id}`;
+        if (viewBarcodeLinkInput) viewBarcodeLinkInput.value = rxLink;
+        if (openViewBarcodeLinkBtn) openViewBarcodeLinkBtn.href = rxLink;
+        if (whatsappViewShareBtn) {
+            let cleanPhone = (found.phone || '').replace(/[^0-9]/g, '');
+            if (cleanPhone.startsWith('0')) cleanPhone = '94' + cleanPhone.substring(1);
+            const waMsg = encodeURIComponent(`Hi ${found.patientName || 'Patient'}, here is your prescription barcode link (${found.id}): ${rxLink}`);
+            whatsappViewShareBtn.href = cleanPhone ? `https://wa.me/${cleanPhone}?text=${waMsg}` : `https://wa.me/?text=${waMsg}`;
+        }
+
         if (status === 'Dispersed') {
             viewMarkDispersedBtn.disabled = true;
             viewMarkDispersedBtn.style.opacity = '0.5';
@@ -667,4 +738,73 @@ document.addEventListener('DOMContentLoaded', () => {
             viewMarkDispersedBtn.innerHTML = "<i class='bx bx-check-circle'></i> Mark as Dispersed";
         }
     });
+
+    // ==========================================
+    // Clipboard Copy Helper
+    // ==========================================
+    function setupCopyButton(btn, input) {
+        if (!btn || !input) return;
+        btn.addEventListener('click', async () => {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(input.value);
+                } else {
+                    input.select();
+                    document.execCommand('copy');
+                }
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = "<i class='bx bx-check'></i> <span>Copied!</span>";
+                btn.classList.add('btn-copied');
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('btn-copied');
+                }, 2200);
+            } catch (err) {
+                input.select();
+                document.execCommand('copy');
+            }
+        });
+    }
+
+    setupCopyButton(copyBarcodeLinkBtn, resBarcodeLinkInput);
+    setupCopyButton(copyViewBarcodeLinkBtn, viewBarcodeLinkInput);
+
+    // ==========================================
+    // SMS Gateway Settings Modal
+    // ==========================================
+    function updateCurrentSenderIdDisplay() {
+        const savedSender = localStorage.getItem('doccare_sender_id') || 'TextLKDemo';
+        if (currentSenderIdLabel) currentSenderIdLabel.textContent = savedSender;
+        if (settingSenderIdInput) settingSenderIdInput.value = savedSender;
+    }
+    updateCurrentSenderIdDisplay();
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            updateCurrentSenderIdDisplay();
+            if (settingsModal) settingsModal.classList.remove('hidden');
+        });
+    }
+
+    if (closeSettingsModalBtn) {
+        closeSettingsModalBtn.addEventListener('click', () => {
+            if (settingsModal) settingsModal.classList.add('hidden');
+        });
+    }
+
+    if (cancelSettingsBtn) {
+        cancelSettingsBtn.addEventListener('click', () => {
+            if (settingsModal) settingsModal.classList.add('hidden');
+        });
+    }
+
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => {
+            let val = (settingSenderIdInput.value || '').trim();
+            if (!val) val = 'TextLKDemo';
+            localStorage.setItem('doccare_sender_id', val);
+            updateCurrentSenderIdDisplay();
+            if (settingsModal) settingsModal.classList.add('hidden');
+        });
+    }
 });

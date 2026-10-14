@@ -61,6 +61,9 @@
                         <small>Cardiologist</small>
                     </div>
                     <img src="https://ui-avatars.com/api/?name=Dr+Smith&background=1e293b&color=38bdf8" alt="Profile">
+                    <button id="settings-btn" class="icon-btn" title="SMS & Gateway Settings" style="margin-left: 8px;">
+                        <i class='bx bx-cog'></i>
+                    </button>
                 </div>
             </header>
 
@@ -145,6 +148,34 @@
                                     <p class="barcode-hint">Session ID Barcode</p>
                                 </div>
                             </div>
+
+                            <!-- Barcode Link & Patient Sharing -->
+                            <div class="barcode-link-section">
+                                <div class="link-section-header">
+                                    <label><i class='bx bx-link-alt'></i> Patient Barcode Link</label>
+                                    <span class="live-badge"><i class='bx bx-broadcast'></i> Live Link</span>
+                                </div>
+                                <div class="link-input-group">
+                                    <input type="text" id="res-barcode-link" readonly value="" placeholder="Generating barcode link...">
+                                    <button type="button" id="copy-barcode-link-btn" class="secondary-btn link-action-btn" title="Copy Link to Clipboard">
+                                        <i class='bx bx-copy'></i> <span>Copy</span>
+                                    </button>
+                                    <a id="open-barcode-link-btn" href="#" target="_blank" class="secondary-btn link-action-btn" title="Open Barcode Page">
+                                        <i class='bx bx-external-link'></i> <span>Open</span>
+                                    </a>
+                                    <a id="whatsapp-share-btn" href="#" target="_blank" class="whatsapp-btn link-action-btn" title="Share via WhatsApp">
+                                        <i class='bx bxl-whatsapp'></i> <span>WhatsApp</span>
+                                    </a>
+                                </div>
+                                <div id="sms-notice-banner" class="sms-notice-card">
+                                    <i class='bx bx-info-circle'></i>
+                                    <div class="notice-text">
+                                        <strong>SMS Status:</strong> <span id="sms-status-text">Sending via Text.lk...</span>
+                                        <small id="sms-sub-text">Note: TextLKDemo is a sandbox ID. Sri Lankan telcos replace SMS bodies containing links to prevent spam. Use the Copy or WhatsApp buttons above to share directly with the patient.</small>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="prescribed-list-summary">
                                 <h4>Rx</h4>
                                 <ul id="res-medicines-list" class="print-list"></ul>
@@ -265,12 +296,31 @@
                                 <span id="view-status-badge" class="badge">Pending</span>
                             </div>
                             
-                            <div class="prescription-details" style="margin-bottom: 24px;">
+                            <div class="prescription-details" style="margin-bottom: 20px;">
                                 <div class="patient-summary">
                                     <p><strong>Patient:</strong> <span id="view-patient-name"></span></p>
                                     <p><strong>Phone:</strong> <span id="view-patient-phone"></span></p>
                                     <p><strong>Date Issued:</strong> <span id="view-date"></span></p>
                                     <p><strong>Barcode ID:</strong> <span id="view-session-id"></span></p>
+                                </div>
+                            </div>
+
+                            <!-- Barcode Link in View Modal -->
+                            <div class="barcode-link-section" style="margin-bottom: 20px;">
+                                <div class="link-section-header">
+                                    <label><i class='bx bx-link-alt'></i> Patient Barcode Link</label>
+                                </div>
+                                <div class="link-input-group">
+                                    <input type="text" id="view-barcode-link" readonly value="" placeholder="Loading link...">
+                                    <button type="button" id="copy-view-barcode-link-btn" class="secondary-btn link-action-btn" title="Copy Link to Clipboard">
+                                        <i class='bx bx-copy'></i> <span>Copy</span>
+                                    </button>
+                                    <a id="open-view-barcode-link-btn" href="#" target="_blank" class="secondary-btn link-action-btn" title="Open Barcode Page">
+                                        <i class='bx bx-external-link'></i> <span>Open</span>
+                                    </a>
+                                    <a id="whatsapp-view-share-btn" href="#" target="_blank" class="whatsapp-btn link-action-btn" title="Share via WhatsApp">
+                                        <i class='bx bxl-whatsapp'></i> <span>WhatsApp</span>
+                                    </a>
                                 </div>
                             </div>
                             
@@ -290,6 +340,39 @@
                 </section>
             </div>
         </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="glass-card result-card modal-content" style="max-width: 500px;">
+            <div class="result-header">
+                <div class="header-left" style="display:flex; align-items:center; gap:12px;">
+                    <i class='bx bx-cog' style="font-size: 24px; color: var(--primary-color);"></i>
+                    <h3>SMS Gateway Settings</h3>
+                </div>
+                <button id="close-settings-modal" class="icon-btn"><i class='bx bx-x'></i></button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <div class="input-group">
+                    <label for="setting-sender-id">Text.lk Sender ID (Mask) <span class="required">*</span></label>
+                    <input type="text" id="setting-sender-id" placeholder="e.g. TextLKDemo or YourBrand" maxlength="11">
+                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 6px;">
+                        Active Sender ID: <strong id="current-sender-id-label" style="color: var(--primary-color);">TextLKDemo</strong>
+                    </small>
+                </div>
+                <div class="sms-notice-card" style="margin-top: 14px;">
+                    <i class='bx bx-info-circle'></i>
+                    <div class="notice-text">
+                        <strong>Why do test SMS links get replaced?</strong>
+                        <small>Sri Lankan telecom networks prevent test sender IDs (like <code>TextLKDemo</code>) from transmitting URLs to safeguard users against phishing. To send links directly inside SMS messages, register a verified Sender ID mask on your <a href="https://app.text.lk" target="_blank" style="color: var(--primary-color); text-decoration: underline;">Text.lk dashboard</a>, then enter it here.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="save-settings-btn" class="primary-btn"><i class='bx bx-save'></i> Save Settings</button>
+                <button id="cancel-settings-btn" class="secondary-btn">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- App Logic -->
