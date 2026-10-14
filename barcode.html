@@ -416,6 +416,39 @@
         <p class="error-message" id="error-message">This prescription link is not valid. Please contact your doctor.</p>
     </div>
 
+    <!-- Lookup State (no token/id in URL) -->
+    <div id="lookup-state" class="barcode-page hidden">
+        <div class="page-header">
+            <div class="logo-badge">
+                <i class='bx bx-plus-medical'></i>
+            </div>
+            <h1>Find Your Prescription</h1>
+            <p>Enter the code from your SMS to view your barcode</p>
+        </div>
+        <div class="barcode-card" style="text-align: left;">
+            <label style="font-size: 13px; font-weight: 600; color: var(--accent); display: block; margin-bottom: 8px;">
+                <i class='bx bx-search'></i> Prescription Code
+            </label>
+            <input type="text" id="lookup-code-input" placeholder="e.g. RX-874209"
+                style="width: 100%; padding: 14px 16px; font-size: 18px; font-weight: 600; letter-spacing: 1px;
+                       background: rgba(0,0,0,0.4); border: 2px solid var(--primary-500); border-radius: 12px;
+                       color: white; outline: none; font-family: 'Inter', sans-serif; text-align: center;"
+            >
+            <button id="lookup-btn"
+                style="width: 100%; margin-top: 14px; padding: 14px; font-size: 15px; font-weight: 600;
+                       background: var(--accent-dark); color: white; border: none; border-radius: 12px;
+                       cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+                       transition: background 0.2s;"
+            >
+                <i class='bx bx-barcode-reader'></i> View My Barcode
+            </button>
+            <p id="lookup-error" style="color: #ef4444; font-size: 13px; text-align: center; margin-top: 10px; display: none;"></p>
+        </div>
+        <div class="page-footer">
+            <p>Powered by <span class="brand">DocCare</span> Smart Medicine Dispenser</p>
+        </div>
+    </div>
+
     <!-- Barcode Content -->
     <div id="barcode-state" class="barcode-page hidden">
 
@@ -480,13 +513,14 @@
 
     <script>
         // ==========================================
-        // Barcode Viewer — Token Lookup
+        // Barcode Viewer — Token / ID / Code Lookup
         // ==========================================
         const FIREBASE_URL = 'https://doctor-438b7-default-rtdb.asia-southeast1.firebasedatabase.app';
 
         const loadingState = document.getElementById('loading-state');
         const errorState = document.getElementById('error-state');
         const barcodeState = document.getElementById('barcode-state');
+        const lookupState = document.getElementById('lookup-state');
 
         async function init() {
             // 1. Get token or id from URL
@@ -495,7 +529,9 @@
             const rxId = params.get('id');
 
             if (!token && !rxId) {
-                showError('Invalid Link', 'No prescription reference found in this link. Please use the link provided by your doctor or clinic.');
+                // Show lookup form instead of error
+                loadingState.classList.add('hidden');
+                lookupState.classList.remove('hidden');
                 return;
             }
 
@@ -608,6 +644,60 @@
 
         // Start
         init();
+
+        // ==========================================
+        // Lookup Form Handlers
+        // ==========================================
+        const lookupBtn = document.getElementById('lookup-btn');
+        const lookupInput = document.getElementById('lookup-code-input');
+        const lookupError = document.getElementById('lookup-error');
+
+        async function loadPrescriptionById(code) {
+            code = (code || '').trim().toUpperCase();
+            if (!code) {
+                lookupError.textContent = 'Please enter a prescription code (e.g. RX-874209).';
+                lookupError.style.display = 'block';
+                return;
+            }
+            // Auto-prefix RX- if the user types just the number
+            if (/^\d+$/.test(code)) code = 'RX-' + code;
+
+            lookupError.style.display = 'none';
+            lookupBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Looking up...';
+            lookupBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${FIREBASE_URL}/prescriptions/${code}.json`);
+                const data = await res.json();
+
+                if (!data) {
+                    lookupError.textContent = `Prescription "${code}" not found. Please check the code and try again.`;
+                    lookupError.style.display = 'block';
+                    lookupBtn.innerHTML = '<i class="bx bx-barcode-reader"></i> View My Barcode';
+                    lookupBtn.disabled = false;
+                    return;
+                }
+
+                // Hide lookup, show barcode
+                lookupState.classList.add('hidden');
+                renderBarcodePage(code, data);
+            } catch (err) {
+                console.error('Lookup error:', err);
+                lookupError.textContent = 'Connection error. Please check your internet and try again.';
+                lookupError.style.display = 'block';
+                lookupBtn.innerHTML = '<i class="bx bx-barcode-reader"></i> View My Barcode';
+                lookupBtn.disabled = false;
+            }
+        }
+
+        if (lookupBtn) {
+            lookupBtn.addEventListener('click', () => loadPrescriptionById(lookupInput.value));
+        }
+        if (lookupInput) {
+            lookupInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') loadPrescriptionById(lookupInput.value);
+            });
+        }
     </script>
 </body>
 </html>

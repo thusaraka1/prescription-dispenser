@@ -441,7 +441,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 try {
-                    const smsMessage = `Hi ${nameInput.value}, your prescription (${sessionId}) is ready. Open this link to get your barcode: ${barcodeLink}`;
+                    // Build SMS without https:// links — TextLKDemo filter replaces messages containing raw URLs
+                    const siteDomain = window.location.host; // e.g. doccare-prescription.vercel.app
+                    const smsMessage = activeSenderId === 'TextLKDemo'
+                        ? `DocCare: Hi ${nameInput.value}, your prescription ${sessionId} is ready. Visit ${siteDomain} and enter code ${sessionId} to view your barcode. Show it at the Smart Dispenser kiosk.`
+                        : `Hi ${nameInput.value}, your prescription (${sessionId}) is ready. Open this link to get your barcode: ${barcodeLink}`;
                     const smsPayload = {
                         recipient: formattedPhone,
                         sender_id: activeSenderId,
